@@ -19,7 +19,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.nadjide_zh.webcloudynov"
     },
     "web": {
       "output": "static",
@@ -44,6 +45,12 @@
       "baseUrl": "/web-cloud-ynov",
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "2d6d05b4-a048-483b-afd4-743010b9425e"
+      }
     }
   }
 }

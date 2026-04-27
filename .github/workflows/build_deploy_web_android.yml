@@ -39,6 +39,16 @@ jobs:
       - name: Build web app
         run: npm run predeploy
 
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+          packager: npm
+
+      - name: Build app
+        run: eas build --platform android --non-interactive --no-wait
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
         with:
