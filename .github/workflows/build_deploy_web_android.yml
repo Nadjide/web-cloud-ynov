@@ -1,11 +1,16 @@
 name: build and deploy Web & Android
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 # Controls when the action will run.
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
-    branches: [main]
+    branches: [master]
 
 jobs:
   build:
@@ -13,10 +18,10 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [22.x,23.x,24.x]
+        node-version: [22.x]
 
     steps:
-      - name: 🏗 Setup repo
+      - name: Setup repo
         uses: actions/checkout@v3
 
       - name: Use Node.js ${{ matrix.node-version }}
@@ -29,4 +34,26 @@ jobs:
         run: npm install
 
       - name: Build web app
-        run: npm predeploy
+        run: npm run predeploy
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: dist
+          if-no-files-found: error
+
+  deploy:
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+
+    permissions:
+      pages: write
+      id-token: write
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2
