@@ -41,6 +41,7 @@
       ]
     ],
     "experiments": {
+      "baseUrl": "/web-cloud-ynov",
       "typedRoutes": true,
       "reactCompiler": true
     }
