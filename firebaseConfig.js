@@ -1,6 +1,6 @@
 import { getAnalytics, isSupported } from 'firebase/analytics';
 import { initializeApp } from 'firebase/app';
-import { GithubAuthProvider, getAuth } from 'firebase/auth';
+import { FacebookAuthProvider, GithubAuthProvider, getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyCALUai0pUYAOydt_LT_GOmleYB1vtQQmI',
@@ -15,6 +15,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const githubProvider = new GithubAuthProvider();
+const facebookProvider = new FacebookAuthProvider();
 
 if (typeof window !== 'undefined') {
   void isSupported().then((supported) => {
@@ -24,5 +25,5 @@ if (typeof window !== 'undefined') {
   });
 }
 
-export { app, auth, githubProvider };
+export { app, auth, facebookProvider, githubProvider };
 

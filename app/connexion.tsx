@@ -1,15 +1,46 @@
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { auth, githubProvider } from '../firebaseConfig.js';
+import { useRouter } from 'expo-router';
+import {
+    RecaptchaVerifier,
+    signInAnonymously,
+    signInWithEmailAndPassword,
+    signInWithPhoneNumber,
+} from 'firebase/auth';
+import { useEffect, useRef, useState } from 'react';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { AppNavbar } from '../components/app-navbar';
+import { auth, facebookProvider, githubProvider } from '../firebaseConfig.js';
 
 export default function ConnexionPage() {
+  const router = useRouter();
+  const [phoneStep, setPhoneStep] = useState<'phone' | 'otp'>('phone');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otpCode, setOtpCode] = useState('');
+  const [confirmationResult, setConfirmationResult] = useState<any>(null);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
+  const recaptchaVerifier = useRef<RecaptchaVerifier | null>(null);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') {
+      return;
+    }
+
+    if (!recaptchaVerifier.current) {
+      recaptchaVerifier.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        size: 'invisible',
+      });
+      recaptchaVerifier.current.render().catch((error) => {
+        console.error('Erreur reCAPTCHA :', error);
+      });
+    }
+
+    return () => {
+      recaptchaVerifier.current?.clear();
+      recaptchaVerifier.current = null;
+    };
+  }, []);
 
   const showToast = (message: string, type: 'success' | 'error') => {
     setToastMessage(message);
@@ -36,9 +67,58 @@ export default function ConnexionPage() {
       await signInWithEmailAndPassword(auth, email, password);
       showToast('Connexion réussie avec Firebase Auth.', 'success');
       console.log('Utilisateur connecté :', auth.currentUser);
+      router.replace('/profil');
     } catch (error) {
       showToast('Impossible de se connecter.', 'error');
       console.error('Erreur de connexion :', error);
+    }
+  };
+
+  const handlePhoneSend = async () => {
+    if (Platform.OS !== 'web') {
+      showToast('La connexion par téléphone est prête pour le web dans ce projet.', 'error');
+      return;
+    }
+
+    if (!phoneNumber.trim()) {
+      showToast('Veuillez saisir un numéro de téléphone.', 'error');
+      return;
+    }
+
+    try {
+      if (!recaptchaVerifier.current) {
+        showToast('reCAPTCHA non prêt.', 'error');
+        return;
+      }
+
+      const result = await signInWithPhoneNumber(auth, phoneNumber.trim(), recaptchaVerifier.current);
+      setConfirmationResult(result);
+      setPhoneStep('otp');
+      showToast('Code OTP envoyé au téléphone.', 'success');
+    } catch (error) {
+      showToast('Impossible d’envoyer le code OTP.', 'error');
+      console.error('Erreur téléphone Auth :', error);
+    }
+  };
+
+  const handlePhoneVerify = async () => {
+    if (!confirmationResult) {
+      showToast('Veuillez d’abord envoyer le code OTP.', 'error');
+      return;
+    }
+
+    if (!otpCode.trim()) {
+      showToast('Veuillez saisir le code OTP.', 'error');
+      return;
+    }
+
+    try {
+      await confirmationResult.confirm(otpCode.trim());
+      showToast('Connexion téléphone réussie.', 'success');
+      router.replace('/profil');
+    } catch (error) {
+      showToast('Code OTP invalide.', 'error');
+      console.error('Erreur OTP :', error);
     }
   };
 
@@ -52,15 +132,51 @@ export default function ConnexionPage() {
       const { signInWithPopup } = await import('firebase/auth');
       await signInWithPopup(auth, githubProvider);
       showToast('Connexion GitHub réussie.', 'success');
+      router.replace('/profil');
     } catch (error) {
       showToast('Impossible de se connecter avec GitHub.', 'error');
       console.error('Erreur GitHub Auth :', error);
     }
   };
 
+  const handleFacebookSignIn = async () => {
+    if (Platform.OS !== 'web') {
+      showToast('Facebook Auth est disponible sur le web uniquement pour ce projet.', 'error');
+      return;
+    }
+
+    try {
+      const { signInWithPopup } = await import('firebase/auth');
+      await signInWithPopup(auth, facebookProvider);
+      showToast('Connexion Facebook réussie.', 'success');
+      router.replace('/profil');
+    } catch (error) {
+      showToast('Impossible de se connecter avec Facebook.', 'error');
+      console.error('Erreur Facebook Auth :', error);
+    }
+  };
+
+  const handleAnonymousSignIn = async () => {
+    try {
+      await signInAnonymously(auth);
+      showToast('Connexion anonyme réussie.', 'success');
+      router.replace('/profil');
+    } catch (error) {
+      showToast('Impossible de se connecter anonymement.', 'error');
+      console.error('Erreur Auth anonyme :', error);
+    }
+  };
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Connexion</Text>
+    <ScrollView contentContainerStyle={styles.container}>
+      <AppNavbar />
+      <View style={styles.hero}>
+        <Text style={styles.kicker}>Authentification</Text>
+        <Text style={styles.title}>Connexion</Text>
+        <Text style={styles.subtitle}>
+          Choisissez votre méthode de connexion et avancez étape par étape.
+        </Text>
+      </View>
 
       {toastMessage ? (
         <View style={[styles.toast, toastType === 'success' ? styles.toastSuccess : styles.toastError]}>
@@ -94,10 +210,31 @@ export default function ConnexionPage() {
         </Pressable>
       </View>
 
-      <View style={styles.phoneSection}>
+      <View style={styles.cardSection}>
+        <Text style={styles.sectionTitle}>Autres providers</Text>
+        <Text style={styles.helperText}>
+          GitHub, Facebook et connexion anonyme sont prêts à être activés.
+        </Text>
+
+        <Pressable style={styles.secondaryButton} onPress={handleGithubSignIn}>
+          <Text style={styles.secondaryButtonText}>Se connecter avec GitHub</Text>
+        </Pressable>
+
+        <Pressable style={styles.secondaryButton} onPress={handleFacebookSignIn}>
+          <Text style={styles.secondaryButtonText}>Se connecter avec Facebook</Text>
+        </Pressable>
+
+        <Pressable style={styles.secondaryButton} onPress={handleAnonymousSignIn}>
+          <Text style={styles.secondaryButtonText}>Connexion anonyme</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.cardSection}>
         <Text style={styles.sectionTitle}>Provider téléphone</Text>
         <Text style={styles.helperText}>
-          Réservé pour la connexion par numéro de téléphone et code OTP.
+          1. Saisissez votre numéro.
+          2. Envoyez le code.
+          3. Le champ OTP apparaît ensuite.
         </Text>
 
         <Text style={styles.label}>Numéro de téléphone</Text>
@@ -109,47 +246,80 @@ export default function ConnexionPage() {
           onChangeText={setPhoneNumber}
         />
 
-        <Text style={styles.label}>Code OTP</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="123456"
-          keyboardType="number-pad"
-          value={otpCode}
-          onChangeText={setOtpCode}
-        />
-      </View>
-
-      <View style={styles.providerSection}>
-        <Text style={styles.sectionTitle}>Provider GitHub</Text>
-        <Text style={styles.helperText}>
-          Connexion via le compte GitHub pour les utilisateurs web.
-        </Text>
-
-        <Pressable style={styles.secondaryButton} onPress={handleGithubSignIn}>
-          <Text style={styles.secondaryButtonText}>Se connecter avec GitHub</Text>
+        <Pressable style={styles.secondaryButton} onPress={handlePhoneSend}>
+          <Text style={styles.secondaryButtonText}>Envoyer le code OTP</Text>
         </Pressable>
+
+        {phoneStep === 'otp' ? (
+          <View style={styles.otpBlock}>
+            <Text style={styles.label}>Code OTP</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="123456"
+              keyboardType="number-pad"
+              value={otpCode}
+              onChangeText={setOtpCode}
+            />
+
+            <Pressable style={styles.secondaryButton} onPress={handlePhoneVerify}>
+              <Text style={styles.secondaryButtonText}>Vérifier le code OTP</Text>
+            </Pressable>
+          </View>
+        ) : null}
       </View>
-    </View>
+
+      <View nativeID="recaptcha-container" style={styles.recaptcha} />
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     backgroundColor: '#f6f8fb',
-    paddingTop: 56,
+    paddingVertical: 56,
     paddingHorizontal: 16,
+    paddingBottom: 48,
+  },
+  hero: {
+    width: '100%',
+    maxWidth: 980,
+    alignSelf: 'center',
+    marginBottom: 16,
+    backgroundColor: '#0f172a',
+    borderRadius: 20,
+    padding: 20,
+  },
+  kicker: {
+    color: '#93c5fd',
+    textTransform: 'uppercase',
+    letterSpacing: 1.4,
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 6,
   },
   title: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: '700',
-    color: '#101828',
-    marginBottom: 20,
+    color: '#ffffff',
+    marginBottom: 8,
+  },
+  subtitle: {
+    color: '#cbd5e1',
+    fontSize: 15,
+    lineHeight: 22,
   },
   form: {
     backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 20,
+    padding: 20,
+    width: '100%',
+    maxWidth: 980,
+    alignSelf: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 3,
   },
   toast: {
     borderRadius: 12,
@@ -194,17 +364,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
-  phoneSection: {
+  cardSection: {
     marginTop: 16,
     backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 20,
+    padding: 20,
+    width: '100%',
+    maxWidth: 980,
+    alignSelf: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 3,
   },
-  providerSection: {
-    marginTop: 16,
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
+  otpBlock: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#e2e8f0',
   },
   sectionTitle: {
     fontSize: 18,
@@ -222,10 +399,16 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',
+    marginTop: 10,
   },
   secondaryButtonText: {
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '700',
+  },
+  recaptcha: {
+    width: 0,
+    height: 0,
+    overflow: 'hidden',
   },
 });

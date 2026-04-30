@@ -1,50 +1,38 @@
-# Welcome to your Expo app 👋
+# Web Cloud Ynov
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Projet individuel Expo / React Native avec Expo Router, Firebase Auth et déploiement Web sur GitHub Pages.
 
-## Get started
+## Déploiement
 
-1. Install dependencies
+Application Web déployée : https://nadjide.github.io/web-cloud-ynov/
 
-   ```bash
-   npm install
-   ```
+## Fonctionnalités
 
-2. Start the app
+- Navigation Expo Router avec pages Accueil, Connexion, Inscription et Profil
+- Inscription avec nom, email et mot de passe
+- Connexion par email / mot de passe
+- Connexion par téléphone avec OTP
+- Connexion avec GitHub
+- Connexion avec Facebook prête côté code
+- Connexion anonyme prête côté code
+- Toast de feedback visuel
+- Redirection vers la page Profil après authentification
+- Déconnexion avec retour vers la page Connexion
 
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Lancement local
 
 ```bash
-npm run reset-project
+npm install
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Build Web
 
-## Learn more
+```bash
+npm run predeploy
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+## Notes
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- Le provider Facebook est implémenté dans le projet, mais j'ai pas reussi à créer un compte meta il me bloquait la création de celui-ci, comme quoi mon appareil est pas de confiance et ça peut importe l'appareil ...
+- Le lien GitHub Pages est : https://nadjide.github.io/web-cloud-ynov/

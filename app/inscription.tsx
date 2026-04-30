@@ -1,9 +1,13 @@
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { signUp } from '../auth_signup_password';
+import { AppNavbar } from '../components/app-navbar';
 import { auth, githubProvider } from '../firebaseConfig.js';
 
 export default function InscriptionPage() {
+  const router = useRouter();
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -21,7 +25,14 @@ export default function InscriptionPage() {
 
   const isValidPassword = (value: string) => value.length >= 6;
 
+  const isValidName = (value: string) => value.trim().length >= 2;
+
   const handleSubmit = async () => {
+    if (!isValidName(name)) {
+      showToast('Veuillez saisir un nom valide.', 'error');
+      return;
+    }
+
     if (!isValidEmail(email)) {
       showToast('Veuillez saisir une adresse email valide.', 'error');
       return;
@@ -33,9 +44,10 @@ export default function InscriptionPage() {
     }
 
     try {
-      await signUp(email, password);
+      await signUp(email, password, name.trim());
       showToast('Compte créé avec Firebase Auth.', 'success');
-    } catch (error) {
+      router.replace('/profil');
+    } catch {
       showToast('Impossible de créer le compte.', 'error');
     }
   };
@@ -57,8 +69,15 @@ export default function InscriptionPage() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Inscription</Text>
+    <ScrollView contentContainerStyle={styles.container}>
+      <AppNavbar />
+      <View style={styles.hero}>
+        <Text style={styles.kicker}>Créer un compte</Text>
+        <Text style={styles.title}>Inscription</Text>
+        <Text style={styles.subtitle}>
+          Un formulaire clair, rapide et optimisé pour les trois informations essentielles.
+        </Text>
+      </View>
 
       {toastMessage ? (
         <View style={[styles.toast, toastType === 'success' ? styles.toastSuccess : styles.toastError]}>
@@ -67,6 +86,17 @@ export default function InscriptionPage() {
       ) : null}
 
       <View style={styles.form}>
+        <Text style={styles.formHint}>Renseignez d’abord votre identité, puis vos accès.</Text>
+
+        <Text style={styles.label}>Nom</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Votre nom"
+          autoCapitalize="words"
+          value={name}
+          onChangeText={setName}
+        />
+
         <Text style={styles.label}>Email</Text>
         <TextInput
           style={styles.input}
@@ -92,7 +122,7 @@ export default function InscriptionPage() {
         </Pressable>
       </View>
 
-      <View style={styles.phoneSection}>
+      <View style={styles.cardSection}>
         <Text style={styles.sectionTitle}>Provider téléphone</Text>
         <Text style={styles.helperText}>
           Réservé pour la création de compte par numéro de téléphone et code OTP.
@@ -117,7 +147,7 @@ export default function InscriptionPage() {
         />
       </View>
 
-      <View style={styles.providerSection}>
+      <View style={styles.cardSection}>
         <Text style={styles.sectionTitle}>Provider GitHub</Text>
         <Text style={styles.helperText}>
           Connexion via le compte GitHub pour les utilisateurs web.
@@ -127,27 +157,62 @@ export default function InscriptionPage() {
           <Text style={styles.secondaryButtonText}>Continuer avec GitHub</Text>
         </Pressable>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     backgroundColor: '#f6f8fb',
-    paddingTop: 56,
+    paddingVertical: 56,
     paddingHorizontal: 16,
+    paddingBottom: 48,
+  },
+  hero: {
+    width: '100%',
+    maxWidth: 980,
+    alignSelf: 'center',
+    marginBottom: 16,
+    backgroundColor: '#0f172a',
+    borderRadius: 20,
+    padding: 20,
+  },
+  kicker: {
+    color: '#93c5fd',
+    textTransform: 'uppercase',
+    letterSpacing: 1.4,
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 6,
   },
   title: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: '700',
-    color: '#101828',
-    marginBottom: 20,
+    color: '#ffffff',
+    marginBottom: 8,
+  },
+  subtitle: {
+    color: '#cbd5e1',
+    fontSize: 15,
+    lineHeight: 22,
   },
   form: {
     backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 20,
+    padding: 20,
+    width: '100%',
+    maxWidth: 980,
+    alignSelf: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  formHint: {
+    fontSize: 13,
+    color: '#475467',
+    marginBottom: 16,
   },
   toast: {
     borderRadius: 12,
@@ -192,17 +257,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
-  phoneSection: {
+  cardSection: {
     marginTop: 16,
     backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
-  },
-  providerSection: {
-    marginTop: 16,
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 20,
+    padding: 20,
+    width: '100%',
+    maxWidth: 980,
+    alignSelf: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 3,
   },
   sectionTitle: {
     fontSize: 18,
@@ -220,6 +286,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',
+    marginTop: 10,
   },
   secondaryButtonText: {
     color: '#ffffff',
